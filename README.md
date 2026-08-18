@@ -2,6 +2,8 @@
 
 A clean-room recreation of an operational dashboard originally built with AI coding tools to automate performance reporting and private feedback.
 
+**[View the live dashboard](https://magicjeff.github.io/aht-performance-dashboard/)**
+
 ## What it demonstrates
 
 - Automatic aggregation of synthetic daily AHT values into weekly workflow metrics
