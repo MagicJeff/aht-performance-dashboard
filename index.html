@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A clean-room recreation of an automated AHT performance dashboard, using synthetic data.">
+  <title>AHT Performance Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span>AHT Performance Dashboard</span>
+    </div>
+    <div class="topbar-meta">
+      <span class="environment-badge">Synthetic recreation</span>
+      <span>Updated 14 Aug 2026</span>
+    </div>
+  </header>
+
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Dashboard navigation">
+      <nav id="primary-navigation">
+        <div class="nav-section-label">Dashboard</div>
+        <button class="nav-item active" data-view="overview" type="button">
+          <span class="nav-icon" aria-hidden="true">01</span>
+          Overview
+        </button>
+
+        <div class="nav-section-label">Workflows</div>
+        <div id="workflow-navigation"></div>
+
+        <div class="nav-section-label">Reports</div>
+        <button class="nav-item" data-view="private" type="button">
+          <span class="nav-icon" aria-hidden="true">DA</span>
+          Private DA report
+        </button>
+        <button class="nav-item" data-view="method" type="button">
+          <span class="nav-icon" aria-hidden="true">?</span>
+          Method
+        </button>
+      </nav>
+    </aside>
+
+    <main class="main-content" id="main-content" tabindex="-1">
+      <div class="disclosure" role="note">
+        <div class="disclosure-icon" aria-hidden="true">i</div>
+        <div>
+          <strong>Clean-room recreation using synthetic data.</strong>
+          No Amazon code, data, terminology or internal design assets are included.
+        </div>
+      </div>
+
+      <section id="view-overview" class="view active" aria-labelledby="overview-title">
+        <div class="page-header">
+          <div>
+            <p class="eyebrow">Operational performance</p>
+            <h1 id="overview-title">Four-week overview</h1>
+            <p class="page-description">Average handling time and consistency across all active workflows.</p>
+          </div>
+          <div class="page-actions">
+            <span class="status-indicator"><span class="status-dot"></span> Daily ingest complete</span>
+          </div>
+        </div>
+
+        <div class="kpi-grid" id="overview-kpis"></div>
+
+        <div class="dashboard-grid">
+          <article class="panel panel-wide">
+            <div class="panel-header">
+              <div>
+                <h2>Average AHT improvement</h2>
+                <p>Simple mean of workflow-level week-on-week improvements.</p>
+              </div>
+              <span class="metric-definition">Lower AHT is better</span>
+            </div>
+            <div class="chart-wrap chart-large">
+              <canvas id="overview-aht-chart" role="img" aria-label="Average AHT improvement across workflows over four weeks"></canvas>
+            </div>
+            <div id="overview-aht-table" class="accessible-table-wrap"></div>
+          </article>
+
+          <article class="panel panel-narrow">
+            <div class="panel-header">
+              <div>
+                <h2>Latest workflow movement</h2>
+                <p>Week-on-week AHT change.</p>
+              </div>
+            </div>
+            <div id="workflow-movement-list" class="movement-list"></div>
+          </article>
+
+          <article class="panel panel-full">
+            <div class="panel-header">
+              <div>
+                <h2>Workflow comparison</h2>
+                <p>Latest weekly performance and next-week targets.</p>
+              </div>
+            </div>
+            <div class="data-table-wrap">
+              <table class="data-table" id="overview-workflow-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Workflow</th>
+                    <th scope="col">Weekly AHT</th>
+                    <th scope="col">AHT improvement</th>
+                    <th scope="col">IQR</th>
+                    <th scope="col">IQR improvement</th>
+                    <th scope="col">Next target</th>
+                    <th scope="col">Status</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="view-workflow" class="view" aria-labelledby="workflow-title">
+        <div class="page-header">
+          <div>
+            <p class="eyebrow">Workflow detail</p>
+            <h1 id="workflow-title">Workflow A</h1>
+            <p class="page-description" id="workflow-description"></p>
+          </div>
+          <div class="workflow-selector-wrap">
+            <label for="workflow-selector">Workflow</label>
+            <select id="workflow-selector"></select>
+          </div>
+        </div>
+
+        <div class="kpi-grid" id="workflow-kpis"></div>
+
+        <div class="dashboard-grid">
+          <article class="panel panel-half">
+            <div class="panel-header">
+              <div><h2>Weekly AHT</h2><p>Team mean with the target for each week.</p></div>
+            </div>
+            <div class="chart-wrap"><canvas id="workflow-aht-chart" role="img"></canvas></div>
+            <div id="workflow-aht-table" class="accessible-table-wrap"></div>
+          </article>
+
+          <article class="panel panel-half">
+            <div class="panel-header">
+              <div><h2>AHT improvement</h2><p>Week-on-week percentage change.</p></div>
+            </div>
+            <div class="chart-wrap"><canvas id="workflow-aht-change-chart" role="img"></canvas></div>
+            <div id="workflow-aht-change-table" class="accessible-table-wrap"></div>
+          </article>
+
+          <article class="panel panel-half">
+            <div class="panel-header">
+              <div><h2>Weekly IQR</h2><p>Spread between the first and third quartiles.</p></div>
+            </div>
+            <div class="chart-wrap"><canvas id="workflow-iqr-chart" role="img"></canvas></div>
+            <div id="workflow-iqr-table" class="accessible-table-wrap"></div>
+          </article>
+
+          <article class="panel panel-half">
+            <div class="panel-header">
+              <div><h2>IQR improvement</h2><p>Week-on-week reduction in variation.</p></div>
+            </div>
+            <div class="chart-wrap"><canvas id="workflow-iqr-change-chart" role="img"></canvas></div>
+            <div id="workflow-iqr-change-table" class="accessible-table-wrap"></div>
+          </article>
+
+          <article class="panel panel-full">
+            <div class="panel-header">
+              <div><h2>Latest DA distribution</h2><p>Aggregated view using synthetic identities.</p></div>
+              <div class="quartile-legend" aria-label="Quartile legend">
+                <span><i class="q1"></i>Q1</span><span><i class="q2"></i>Q2</span><span><i class="q3"></i>Q3</span><span><i class="q4"></i>Q4</span>
+              </div>
+            </div>
+            <div class="distribution-strip" id="workflow-distribution"></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="view-private" class="view" aria-labelledby="private-title">
+        <div class="page-header">
+          <div>
+            <p class="eyebrow">Private performance report</p>
+            <h1 id="private-title">Individual DA dashboard</h1>
+            <p class="page-description">Preview of the standalone HTML report generated and emailed privately to each DA.</p>
+          </div>
+          <div class="workflow-selector-wrap">
+            <label for="da-selector">Synthetic DA</label>
+            <select id="da-selector"></select>
+          </div>
+        </div>
+
+        <div class="privacy-banner" role="note">
+          <strong>Private by design.</strong> The original process generated a separate HTML attachment for each DA. Individual data never appeared on the shared management dashboard.
+        </div>
+
+        <div id="private-summary" class="private-summary"></div>
+        <div id="private-distributions" class="private-distributions"></div>
+      </section>
+
+      <section id="view-method" class="view" aria-labelledby="method-title">
+        <div class="page-header">
+          <div>
+            <p class="eyebrow">Recreation notes</p>
+            <h1 id="method-title">How the workflow operated</h1>
+            <p class="page-description">A bounded reconstruction of the process and calculations, not the internal implementation.</p>
+          </div>
+        </div>
+
+        <div class="process-flow" aria-label="Process flow">
+          <div class="process-step"><span>1</span><strong>Daily work</strong><small>DAs complete assigned workflows</small></div>
+          <div class="process-arrow" aria-hidden="true">→</div>
+          <div class="process-step"><span>2</span><strong>Excel publication</strong><small>Daily AHT matrix is updated</small></div>
+          <div class="process-arrow" aria-hidden="true">→</div>
+          <div class="process-step"><span>3</span><strong>Automatic ingest</strong><small>Program detects and processes data</small></div>
+          <div class="process-arrow" aria-hidden="true">→</div>
+          <div class="process-step"><span>4</span><strong>Shared dashboard</strong><small>Team trends and targets update</small></div>
+          <div class="process-arrow" aria-hidden="true">→</div>
+          <div class="process-step"><span>5</span><strong>Private reports</strong><small>Personal HTML dashboards are emailed</small></div>
+        </div>
+
+        <div class="method-grid">
+          <article class="panel">
+            <div class="panel-header"><div><h2>What the tool replaced</h2></div></div>
+            <ul class="method-list">
+              <li>Repeated manual aggregation of daily AHT values.</li>
+              <li>Rebuilding workflow-level performance views each week.</li>
+              <li>Calculating quartiles, IQR changes and targets by hand.</li>
+              <li>Preparing separate private feedback reports for every DA.</li>
+            </ul>
+          </article>
+          <article class="panel">
+            <div class="panel-header"><div><h2>Core calculations</h2></div></div>
+            <dl class="formula-list">
+              <div><dt>AHT improvement</dt><dd>(Previous AHT − Current AHT) ÷ Previous AHT</dd></div>
+              <div><dt>IQR</dt><dd>Third quartile − First quartile</dd></div>
+              <div><dt>IQR improvement</dt><dd>(Previous IQR − Current IQR) ÷ Previous IQR</dd></div>
+              <div><dt>Next-week target</dt><dd>Previous week's Q3 × 0.95</dd></div>
+            </dl>
+          </article>
+          <article class="panel panel-full">
+            <div class="panel-header"><div><h2>Synthetic source preview</h2><p>The recreation models the original daily Excel matrix while keeping all identities and values fictional.</p></div></div>
+            <div class="data-table-wrap"><table class="data-table compact" id="source-preview-table"></table></div>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <footer class="footer">
+    Built from scratch with AI coding tools as a public demonstration. Synthetic data only.
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
