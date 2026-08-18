@@ -16,6 +16,8 @@ A clean-room recreation of an operational dashboard originally built with AI cod
 
 This repository contains no Amazon code, data, internal terminology, field names or design assets. All names, workflows and metrics are fictional. The interface is a from-scratch recreation informed by public AWS application-design conventions.
 
+In the original process, individual performance never appeared on the shared management dashboard. The system generated a separate HTML attachment for each DA and emailed it privately. This public recreation uses a synthetic DA selector solely to demonstrate that personalised output.
+
 ## Run locally
 
 Open `index.html` in a modern browser, or serve the folder with any static file server.

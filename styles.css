@@ -148,7 +148,7 @@ button, select { font: inherit; }
   padding: 24px 28px 48px;
 }
 
-.disclosure, .privacy-banner {
+.disclosure {
   display: flex;
   align-items: flex-start;
   gap: 10px;
@@ -169,7 +169,6 @@ button, select { font: inherit; }
   text-align: center;
   font: 700 12px/17px Georgia, serif;
 }
-.privacy-banner { color: #274214; background: #f2f8ee; border-color: #9cbd88; }
 
 .view { display: none; }
 .view.active { display: block; }
