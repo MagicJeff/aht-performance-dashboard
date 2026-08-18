@@ -18,10 +18,6 @@ This repository contains no Amazon code, data, internal terminology, field names
 
 In the original process, individual performance never appeared on the shared management dashboard. The system generated a separate HTML attachment for each DA and emailed it privately. This public recreation uses a synthetic DA selector solely to demonstrate that personalised output.
 
-## Run locally
-
-Open `index.html` in a modern browser, or serve the folder with any static file server.
-
 ## Publish with GitHub Pages
 
 The project requires no build step. In the repository settings, configure GitHub Pages to publish from the `main` branch and repository root.
