@@ -83,7 +83,12 @@ function generateDailyRecords() {
   return records;
 }
 
-const dailyRecords = generateDailyRecords();
+const sourceWorkbookUrl = "outputs/aht-performance-dashboard/synthetic-aht-source.xlsx";
+let dailyRecords = [];
+let daWeekly = [];
+let workflowMetrics = new Map();
+let overviewImprovement = [];
+let overviewIqrImprovement = [];
 
 function mean(values) {
   if (!values.length) return null;
@@ -120,49 +125,112 @@ function groupBy(items, keyFn) {
   }, new Map());
 }
 
-const daWeeklyGroups = groupBy(dailyRecords, record => `${record.daId}|${record.workflowId}|${record.weekIndex}`);
-const daWeekly = [...daWeeklyGroups.entries()].map(([key, records]) => {
-  const [daId, workflowId, weekIndex] = key.split("|");
-  return { daId, workflowId, weekIndex: Number(weekIndex), aht: mean(records.map(record => record.aht)), days: records.length };
-});
-
-const workflowMetrics = new Map();
-workflows.forEach(workflow => {
-  const weekly = weekStarts.map((_, weekIndex) => {
-    const entries = daWeekly.filter(item => item.workflowId === workflow.id && item.weekIndex === weekIndex);
-    const values = entries.map(item => item.aht);
-    const q1 = quantile(values, 0.25);
-    const median = quantile(values, 0.5);
-    const q3 = quantile(values, 0.75);
-    return {
-      weekIndex,
-      entries,
-      values,
-      mean: mean(values),
-      min: Math.min(...values),
-      q1,
-      median,
-      q3,
-      max: Math.max(...values),
-      iqr: q3 - q1,
-      std: standardDeviation(values)
-    };
+function calculateDashboardData(records) {
+  const daWeeklyGroups = groupBy(records, record => `${record.daId}|${record.workflowId}|${record.weekIndex}`);
+  const calculatedDaWeekly = [...daWeeklyGroups.entries()].map(([key, groupRecords]) => {
+    const [daId, workflowId, weekIndex] = key.split("|");
+    return { daId, workflowId, weekIndex: Number(weekIndex), aht: mean(groupRecords.map(record => record.aht)), days: groupRecords.length };
   });
-  weekly.forEach((week, index) => {
-    week.ahtImprovement = index ? improvement(weekly[index - 1].mean, week.mean) : null;
-    week.iqrImprovement = index ? improvement(weekly[index - 1].iqr, week.iqr) : null;
-    week.target = index ? weekly[index - 1].q3 * 0.95 : null;
+
+  const calculatedWorkflowMetrics = new Map();
+  workflows.forEach(workflow => {
+    const weekly = weekStarts.map((_, weekIndex) => {
+      const entries = calculatedDaWeekly.filter(item => item.workflowId === workflow.id && item.weekIndex === weekIndex);
+      const values = entries.map(item => item.aht);
+      const q1 = quantile(values, 0.25);
+      const median = quantile(values, 0.5);
+      const q3 = quantile(values, 0.75);
+      return {
+        weekIndex,
+        entries,
+        values,
+        mean: mean(values),
+        min: Math.min(...values),
+        q1,
+        median,
+        q3,
+        max: Math.max(...values),
+        iqr: q3 - q1,
+        std: standardDeviation(values)
+      };
+    });
+    weekly.forEach((week, index) => {
+      week.ahtImprovement = index ? improvement(weekly[index - 1].mean, week.mean) : null;
+      week.iqrImprovement = index ? improvement(weekly[index - 1].iqr, week.iqr) : null;
+      week.target = index ? weekly[index - 1].q3 * 0.95 : null;
+    });
+    calculatedWorkflowMetrics.set(workflow.id, weekly);
   });
-  workflowMetrics.set(workflow.id, weekly);
-});
 
-const overviewImprovement = displayedWeeks.map(weekIndex => mean(
-  workflows.map(workflow => workflowMetrics.get(workflow.id)[weekIndex].ahtImprovement)
-));
+  return {
+    daWeekly: calculatedDaWeekly,
+    workflowMetrics: calculatedWorkflowMetrics,
+    overviewImprovement: displayedWeeks.map(weekIndex => mean(
+      workflows.map(workflow => calculatedWorkflowMetrics.get(workflow.id)[weekIndex].ahtImprovement)
+    )),
+    overviewIqrImprovement: displayedWeeks.map(weekIndex => mean(
+      workflows.map(workflow => calculatedWorkflowMetrics.get(workflow.id)[weekIndex].iqrImprovement)
+    ))
+  };
+}
 
-const overviewIqrImprovement = displayedWeeks.map(weekIndex => mean(
-  workflows.map(workflow => workflowMetrics.get(workflow.id)[weekIndex].iqrImprovement)
-));
+function applyDailyRecords(records) {
+  dailyRecords = records;
+  const calculated = calculateDashboardData(records);
+  daWeekly = calculated.daWeekly;
+  workflowMetrics = calculated.workflowMetrics;
+  overviewImprovement = calculated.overviewImprovement;
+  overviewIqrImprovement = calculated.overviewIqrImprovement;
+}
+
+function dateToIso(value) {
+  if (value instanceof Date && !Number.isNaN(value.valueOf())) return value.toISOString().slice(0, 10);
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
+  throw new Error(`Invalid date in source workbook: ${String(value)}`);
+}
+
+function weekIndexForDate(date) {
+  const timestamp = new Date(`${date}T12:00:00Z`).valueOf();
+  return weekStarts.findIndex(weekStart => {
+    const dayOffset = (timestamp - weekStart.valueOf()) / 86400000;
+    return dayOffset >= 0 && dayOffset < 5;
+  });
+}
+
+async function loadExcelRecords() {
+  if (typeof XLSX === "undefined") throw new Error("Excel parser did not load");
+  const response = await fetch(sourceWorkbookUrl, { cache: "no-store" });
+  if (!response.ok) throw new Error(`Workbook request failed with HTTP ${response.status}`);
+  const workbook = XLSX.read(await response.arrayBuffer(), { type: "array", cellDates: true });
+  const worksheet = workbook.Sheets["Daily AHT"];
+  if (!worksheet) throw new Error("Daily AHT worksheet is missing");
+
+  const rows = XLSX.utils.sheet_to_json(worksheet, { raw: true, defval: null });
+  return rowsToDailyRecords(rows);
+}
+
+function rowsToDailyRecords(rows) {
+  const knownAssociates = new Set(associates.map(da => da.id));
+  const records = [];
+  rows.forEach(row => {
+    const date = dateToIso(row.Date);
+    const daId = row["DA ID"];
+    if (!knownAssociates.has(daId)) throw new Error(`Unknown synthetic DA ID: ${String(daId)}`);
+    const weekIndex = weekIndexForDate(date);
+    if (weekIndex < 0) throw new Error(`Date outside reporting window: ${date}`);
+    workflows.forEach(workflow => {
+      const value = row[workflow.name];
+      if (value === null || value === undefined || value === "") return;
+      const aht = Number(value);
+      if (!Number.isFinite(aht) || aht <= 0) throw new Error(`Invalid AHT for ${daId} on ${date}`);
+      records.push({ date, weekIndex, daId, workflowId: workflow.id, aht });
+    });
+  });
+  if (!records.length) throw new Error("Source workbook contains no AHT values");
+  return records;
+}
+
+if (typeof document === "undefined") applyDailyRecords(generateDailyRecords());
 
 function formatNumber(value, decimals = 1) {
   return Number(value).toFixed(decimals);
@@ -559,6 +627,25 @@ function initialize() {
   document.querySelector("#da-selector").addEventListener("change", event => renderPrivate(event.target.value));
 }
 
+async function bootstrapDashboard() {
+  const statusText = document.querySelector("#ingest-status-text");
+  const statusDot = document.querySelector("#ingest-status .status-dot");
+  try {
+    const records = await loadExcelRecords();
+    applyDailyRecords(records);
+    initialize();
+    statusText.textContent = `Excel workbook loaded · ${records.length} AHT values`;
+    statusDot.classList.remove("loading", "error");
+  } catch (error) {
+    statusText.textContent = "Excel workbook load failed";
+    statusDot.classList.remove("loading");
+    statusDot.classList.add("error");
+    const alert = document.querySelector("#ingest-error");
+    alert.hidden = false;
+    alert.querySelector("span").textContent = error instanceof Error ? error.message : String(error);
+  }
+}
+
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     workflows,
@@ -569,10 +656,14 @@ if (typeof module !== "undefined" && module.exports) {
     overviewImprovement,
     overviewIqrImprovement,
     displayedWeeks,
+    sourceWorkbookUrl,
     mean,
     quantile,
-    improvement
+    improvement,
+    calculateDashboardData,
+    weekIndexForDate,
+    rowsToDailyRecords
   };
 }
 
-if (typeof document !== "undefined") initialize();
+if (typeof document !== "undefined") bootstrapDashboard();

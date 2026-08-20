@@ -1,6 +1,8 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const {
   workflows,
   associates,
@@ -10,9 +12,42 @@ const {
   overviewImprovement,
   overviewIqrImprovement,
   displayedWeeks,
+  sourceWorkbookUrl,
   mean,
-  improvement
+  improvement,
+  rowsToDailyRecords
 } = require("./app.js");
+
+const workbookPath = path.join(__dirname, sourceWorkbookUrl);
+const workbookBytes = fs.readFileSync(workbookPath);
+const indexHtml = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
+const appSource = fs.readFileSync(path.join(__dirname, "app.js"), "utf8");
+
+assert.equal(sourceWorkbookUrl, "outputs/aht-performance-dashboard/synthetic-aht-source.xlsx");
+assert.ok(workbookBytes.length > 10000, "synthetic Excel workbook should contain the full source matrix");
+assert.equal(workbookBytes.subarray(0, 2).toString(), "PK", "source workbook should be a valid XLSX ZIP container");
+assert.match(indexHtml, /xlsx\.full\.min\.js/, "page should load the browser Excel parser");
+assert.match(indexHtml, /Download source workbook/, "method page should expose the synthetic workbook");
+assert.match(indexHtml, /Production architecture versus public demo/, "method page should distinguish production ingestion from the demo");
+assert.match(indexHtml, /scheduled server-side job/, "method page should explain production ingestion");
+assert.match(appSource, /fetch\(sourceWorkbookUrl/, "dashboard should fetch the workbook at startup");
+assert.match(appSource, /XLSX\.read/, "dashboard should parse the fetched workbook");
+
+const sourceRows = new Map();
+dailyRecords.forEach(record => {
+  const key = `${record.date}|${record.daId}`;
+  if (!sourceRows.has(key)) {
+    const da = associates.find(item => item.id === record.daId);
+    sourceRows.set(key, { Date: record.date, "DA ID": record.daId, "DA name": da.name });
+  }
+  const workflow = workflows.find(item => item.id === record.workflowId);
+  sourceRows.get(key)[workflow.name] = record.aht;
+});
+const reimportedRecords = rowsToDailyRecords([...sourceRows.values()]);
+const sortRecords = records => [...records].sort((a, b) =>
+  `${a.date}|${a.daId}|${a.workflowId}`.localeCompare(`${b.date}|${b.daId}|${b.workflowId}`)
+);
+assert.deepEqual(sortRecords(reimportedRecords), sortRecords(dailyRecords), "Excel matrix rows should reproduce the complete daily record set");
 
 assert.equal(workflows.length, 4, "expected four synthetic workflows");
 assert.equal(associates.length, 16, "expected sixteen synthetic DAs");
