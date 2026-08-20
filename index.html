@@ -52,6 +52,11 @@
         </div>
       </div>
 
+      <div class="load-error" id="ingest-error" role="alert" hidden>
+        <strong>Unable to load the synthetic Excel source.</strong>
+        <span></span>
+      </div>
+
       <section id="view-overview" class="view active" aria-labelledby="overview-title">
         <div class="page-header">
           <div>
@@ -60,7 +65,7 @@
             <p class="page-description">Average handling time and consistency across all active workflows.</p>
           </div>
           <div class="page-actions">
-            <span class="status-indicator"><span class="status-dot"></span> Daily ingest complete</span>
+            <span class="status-indicator" id="ingest-status"><span class="status-dot loading"></span><span id="ingest-status-text">Loading Excel workbook…</span></span>
           </div>
         </div>
 
@@ -209,11 +214,16 @@
           <div class="process-arrow" aria-hidden="true">→</div>
           <div class="process-step"><span>2</span><strong>Excel publication</strong><small>Daily AHT matrix is updated</small></div>
           <div class="process-arrow" aria-hidden="true">→</div>
-          <div class="process-step"><span>3</span><strong>Automatic ingest</strong><small>Program detects and processes data</small></div>
+          <div class="process-step"><span>3</span><strong>Automatic ingest</strong><small>Dashboard fetches and parses workbook</small></div>
           <div class="process-arrow" aria-hidden="true">→</div>
           <div class="process-step"><span>4</span><strong>Shared dashboard</strong><small>Team trends and targets update</small></div>
           <div class="process-arrow" aria-hidden="true">→</div>
           <div class="process-step"><span>5</span><strong>Private reports</strong><small>Personal HTML dashboards are emailed</small></div>
+        </div>
+
+        <div class="implementation-note" role="note">
+          <strong>Production architecture versus public demo.</strong>
+          In production, a scheduled server-side job authenticates to the private workbook's storage API and retrieves the latest file automatically. This demo does not reproduce that authenticated connection; it loads a public synthetic workbook directly when the page opens.
         </div>
 
         <div class="method-grid">
@@ -236,7 +246,10 @@
             </dl>
           </article>
           <article class="panel panel-full">
-            <div class="panel-header"><div><h2>Synthetic source preview</h2><p>The recreation models the original daily Excel matrix while keeping all identities and values fictional.</p></div></div>
+            <div class="panel-header">
+              <div><h2>Synthetic source preview</h2><p>Loaded automatically from the public Excel workbook used by this recreation.</p></div>
+              <a class="source-link" href="outputs/aht-performance-dashboard/synthetic-aht-source.xlsx" download>Download source workbook</a>
+            </div>
             <div class="data-table-wrap"><table class="data-table compact" id="source-preview-table"></table></div>
           </article>
         </div>
@@ -248,6 +261,7 @@
     Built from scratch with AI coding tools as a public demonstration. Synthetic data only.
   </footer>
 
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

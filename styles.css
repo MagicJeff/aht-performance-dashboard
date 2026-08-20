@@ -194,6 +194,30 @@ h2 { margin: 0; font-size: 18px; line-height: 23px; }
 .page-actions { align-self: center; }
 .status-indicator { color: var(--slate); font-size: 12px; }
 .status-dot { display: inline-block; width: 8px; height: 8px; margin-right: 5px; border-radius: 50%; background: var(--green); }
+.status-dot.loading { background: var(--yellow); }
+.status-dot.error { background: var(--red); }
+
+.load-error {
+  margin: -8px 0 20px;
+  padding: 12px 14px;
+  color: #740a00;
+  background: #fff1ef;
+  border: 1px solid #e0a69f;
+  border-radius: 2px;
+}
+.load-error strong { display: block; margin-bottom: 2px; }
+.source-link { flex: 0 0 auto; color: var(--blue); font-size: 12px; font-weight: 700; }
+.source-link:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+.implementation-note {
+  margin: 0 0 20px;
+  padding: 12px 14px;
+  color: #033160;
+  background: #f1f8ff;
+  border-left: 4px solid var(--blue);
+  font-size: 13px;
+}
+.implementation-note strong { display: block; margin-bottom: 2px; }
 
 .workflow-selector-wrap { min-width: 210px; }
 .workflow-selector-wrap label { display: block; margin-bottom: 4px; color: var(--slate); font-size: 12px; font-weight: 700; }
